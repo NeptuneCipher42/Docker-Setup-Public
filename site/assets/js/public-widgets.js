@@ -1,4 +1,17 @@
 (function () {
+  const POLL_MS = 15000;
+  const HISTORY_LIMIT = Math.ceil((24 * 60 * 60 * 1000) / POLL_MS);
+
+  const portalHosts = new Set([
+    "404n0tf0und.net",
+    "git.404n0tf0und.net",
+    "cloud.404n0tf0und.net",
+    "admin.404n0tf0und.net",
+    "security-admin.404n0tf0und.net",
+    "kuma.404n0tf0und.net",
+    "netdata.404n0tf0und.net",
+  ]);
+
   const ids = {
     status: document.getElementById("w-status"),
     uptime: document.getElementById("w-uptime"),
@@ -22,6 +35,40 @@
 
   const history = { load: [], containers: [], secRisk: [], secTasks: [] };
 
+  const metricConfig = {
+    load: { label: "Load Average", color: "#5eead4", unit: "" },
+    containers: { label: "Container Runtime", color: "#38bdf8", unit: "m" },
+    secRisk: { label: "Risk Band", color: "#c084fc", unit: "" },
+    secTasks: { label: "Open Tasks", color: "#38bdf8", unit: "" },
+  };
+
+  const modal = {
+    root: null,
+    title: null,
+    canvas: null,
+    current: null,
+    min: null,
+    max: null,
+    delta: null,
+    samples: null,
+    window: null,
+  };
+  let activeMetric = null;
+
+  function normalizePortalLinks() {
+    document.querySelectorAll("a[href^='https://']").forEach((a) => {
+      try {
+        const u = new URL(a.href);
+        if (portalHosts.has(u.hostname)) {
+          u.port = "4443";
+          a.href = u.toString();
+        }
+      } catch {
+        // Ignore malformed URLs.
+      }
+    });
+  }
+
   function fmtUptime(seconds) {
     if (!Number.isFinite(seconds) || seconds <= 0) return "Unknown";
     const d = Math.floor(seconds / 86400);
@@ -30,7 +77,7 @@
     return `${d}d ${h}h ${m}m`;
   }
 
-  function push(historyArr, value, max = 40) {
+  function push(historyArr, value, max = HISTORY_LIMIT) {
     historyArr.push(value);
     if (historyArr.length > max) historyArr.shift();
   }
@@ -45,11 +92,27 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function ensureCanvasSize(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const cssW = Math.max(2, Math.floor(rect.width || canvas.width || 2));
+    const cssH = Math.max(2, Math.floor(rect.height || canvas.height || 2));
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const pxW = Math.max(2, Math.floor(cssW * dpr));
+    const pxH = Math.max(2, Math.floor(cssH * dpr));
+
+    if (canvas.width !== pxW || canvas.height !== pxH) {
+      canvas.width = pxW;
+      canvas.height = pxH;
+    }
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: cssW, h: cssH };
+  }
+
   function drawSparkline(canvas, values, color) {
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const w = canvas.width;
-    const h = canvas.height;
+    const { ctx, w, h } = ensureCanvasSize(canvas);
     ctx.clearRect(0, 0, w, h);
     if (values.length === 1) {
       ctx.strokeStyle = color;
@@ -122,6 +185,12 @@
     return v.toFixed(4);
   }
 
+  function fmtMetric(v, unit = "") {
+    if (!Number.isFinite(v)) return "--";
+    if (unit) return `${fmtDelta(v)}${unit}`;
+    return fmtDelta(v);
+  }
+
   function setTrend(el, values, unit = "") {
     if (!el || values.length === 0) return;
     const curr = values[values.length - 1];
@@ -137,6 +206,112 @@
     else if (delta < 0) el.className = "meta trend down";
     else el.className = "meta trend flat";
     el.textContent = `Trend: ${sign}${fmtDelta(delta)}${unit} | now ${fmtDelta(curr)}${unit}`;
+  }
+
+  function ensureModal() {
+    if (modal.root) return;
+    const root = document.createElement("div");
+    root.className = "chart-modal";
+    root.hidden = true;
+    root.innerHTML = `
+      <div class="chart-modal__panel" role="dialog" aria-modal="true" aria-label="Expanded chart">
+        <button type="button" class="chart-modal__close" data-close-modal aria-label="Close chart view">Close</button>
+        <h2 class="chart-modal__title"></h2>
+        <canvas class="chart-modal__canvas" width="960" height="280"></canvas>
+        <div class="chart-modal__stats">
+          <p><span>Current</span><strong data-stat-current>--</strong></p>
+          <p><span>Min</span><strong data-stat-min>--</strong></p>
+          <p><span>Max</span><strong data-stat-max>--</strong></p>
+          <p><span>Delta</span><strong data-stat-delta>--</strong></p>
+        </div>
+        <p class="chart-modal__meta"><span data-stat-samples>0</span> samples over <span data-stat-window>24h</span>.</p>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    modal.root = root;
+    modal.title = root.querySelector(".chart-modal__title");
+    modal.canvas = root.querySelector(".chart-modal__canvas");
+    modal.current = root.querySelector("[data-stat-current]");
+    modal.min = root.querySelector("[data-stat-min]");
+    modal.max = root.querySelector("[data-stat-max]");
+    modal.delta = root.querySelector("[data-stat-delta]");
+    modal.samples = root.querySelector("[data-stat-samples]");
+    modal.window = root.querySelector("[data-stat-window]");
+
+    root.addEventListener("click", (event) => {
+      if (event.target === root || event.target.closest("[data-close-modal]")) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.root && !modal.root.hidden) closeModal();
+    });
+  }
+
+  function openModal(metric) {
+    if (!history[metric]) return;
+    ensureModal();
+    activeMetric = metric;
+    modal.root.hidden = false;
+    document.body.classList.add("modal-open");
+    renderModal();
+  }
+
+  function closeModal() {
+    if (!modal.root) return;
+    modal.root.hidden = true;
+    activeMetric = null;
+    document.body.classList.remove("modal-open");
+  }
+
+  function renderModal() {
+    if (!modal.root || !activeMetric) return;
+    const values = history[activeMetric] || [];
+    const config = metricConfig[activeMetric] || { label: "Metric", color: "#38bdf8", unit: "" };
+
+    modal.title.textContent = `${config.label} (24h)`;
+    modal.samples.textContent = String(values.length);
+    modal.window.textContent = "24h";
+
+    if (!values.length) {
+      modal.current.textContent = "No data";
+      modal.min.textContent = "--";
+      modal.max.textContent = "--";
+      modal.delta.textContent = "--";
+      drawSparkline(modal.canvas, [], config.color);
+      return;
+    }
+
+    const curr = values[values.length - 1];
+    const prev = values.length > 1 ? values[values.length - 2] : curr;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    modal.current.textContent = fmtMetric(curr, config.unit);
+    modal.min.textContent = fmtMetric(min, config.unit);
+    modal.max.textContent = fmtMetric(max, config.unit);
+    modal.delta.textContent = `${curr - prev >= 0 ? "+" : ""}${fmtMetric(curr - prev, config.unit)}`;
+
+    drawSparkline(modal.canvas, values, config.color);
+  }
+
+  function wireChartWidgets() {
+    document.querySelectorAll(".chart-widget[data-metric]").forEach((widget) => {
+      const metric = widget.dataset.metric;
+      if (!metric) return;
+      widget.setAttribute("role", "button");
+      widget.setAttribute("tabindex", "0");
+      widget.setAttribute("aria-label", "Expand chart");
+      widget.addEventListener("click", () => openModal(metric));
+      widget.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openModal(metric);
+        }
+      });
+    });
   }
 
   async function refresh() {
@@ -187,7 +362,9 @@
       drawSparkline(ids.chartContainers, history.containers, "#38bdf8");
       setTrend(ids.trendLoad, history.load);
       setTrend(ids.trendContainers, history.containers, "m");
-    } catch (err) {
+
+      if (activeMetric) renderModal();
+    } catch {
       ids.status.textContent = "DEGRADED";
       ids.status.className = "value bad";
       ids.uptime.textContent = "Unavailable";
@@ -202,6 +379,8 @@
     }
   }
 
+  normalizePortalLinks();
+  wireChartWidgets();
   refresh();
-  setInterval(refresh, 15000);
+  setInterval(refresh, POLL_MS);
 })();

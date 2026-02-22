@@ -1,4 +1,7 @@
 (function () {
+  const POLL_MS = 30000;
+  const HISTORY_LIMIT = Math.ceil((24 * 60 * 60 * 1000) / POLL_MS);
+
   const el = {
     risk: document.getElementById("risk"),
     status: document.getElementById("status"),
@@ -10,9 +13,34 @@
     chartFindings: document.getElementById("chart-findings"),
     trendRisk: document.getElementById("trend-risk"),
     trendFindings: document.getElementById("trend-findings"),
+    findingsTableWrap: document.querySelector(".table-scroll"),
+    findingsTable: document.querySelector(".table-scroll table"),
   };
 
   const history = { risk: [], findingCount: [] };
+  const metricConfig = {
+    risk: { label: "Risk Score", color: "#fb7185", unit: "" },
+    findingCount: { label: "Finding Count", color: "#f97316", unit: "" },
+  };
+
+  const chartModal = {
+    root: null,
+    title: null,
+    canvas: null,
+    current: null,
+    min: null,
+    max: null,
+    delta: null,
+    samples: null,
+    window: null,
+  };
+
+  const findingsModal = {
+    root: null,
+    tableWrap: null,
+  };
+
+  let activeMetric = null;
 
   function severityClass(s) {
     const v = (s || "").toLowerCase();
@@ -27,7 +55,7 @@
     return "value bad";
   }
 
-  function push(arr, value, max = 40) {
+  function push(arr, value, max = HISTORY_LIMIT) {
     arr.push(value);
     if (arr.length > max) arr.shift();
   }
@@ -42,11 +70,27 @@
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  function ensureCanvasSize(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const cssW = Math.max(2, Math.floor(rect.width || canvas.width || 2));
+    const cssH = Math.max(2, Math.floor(rect.height || canvas.height || 2));
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const pxW = Math.max(2, Math.floor(cssW * dpr));
+    const pxH = Math.max(2, Math.floor(cssH * dpr));
+
+    if (canvas.width !== pxW || canvas.height !== pxH) {
+      canvas.width = pxW;
+      canvas.height = pxH;
+    }
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w: cssW, h: cssH };
+  }
+
   function drawSparkline(canvas, values, color) {
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const w = canvas.width;
-    const h = canvas.height;
+    const { ctx, w, h } = ensureCanvasSize(canvas);
     ctx.clearRect(0, 0, w, h);
     if (values.length === 1) {
       ctx.strokeStyle = color;
@@ -117,21 +161,197 @@
     return v.toFixed(4);
   }
 
-  function setTrend(el, values, unit = "") {
-    if (!el || values.length === 0) return;
+  function fmtMetric(v, unit = "") {
+    if (!Number.isFinite(v)) return "--";
+    if (unit) return `${fmtDelta(v)}${unit}`;
+    return fmtDelta(v);
+  }
+
+  function setTrend(elm, values, unit = "") {
+    if (!elm || values.length === 0) return;
     const curr = values[values.length - 1];
     if (values.length < 2) {
-      el.className = "meta trend flat";
-      el.textContent = `Trend: baseline (${fmtDelta(curr)}${unit})`;
+      elm.className = "meta trend flat";
+      elm.textContent = `Trend: baseline (${fmtDelta(curr)}${unit})`;
       return;
     }
     const prev = values[values.length - 2];
     const delta = curr - prev;
     const sign = delta > 0 ? "+" : "";
-    if (delta > 0) el.className = "meta trend up";
-    else if (delta < 0) el.className = "meta trend down";
-    else el.className = "meta trend flat";
-    el.textContent = `Trend: ${sign}${fmtDelta(delta)}${unit} | now ${fmtDelta(curr)}${unit}`;
+    if (delta > 0) elm.className = "meta trend up";
+    else if (delta < 0) elm.className = "meta trend down";
+    else elm.className = "meta trend flat";
+    elm.textContent = `Trend: ${sign}${fmtDelta(delta)}${unit} | now ${fmtDelta(curr)}${unit}`;
+  }
+
+  function ensureChartModal() {
+    if (chartModal.root) return;
+    const root = document.createElement("div");
+    root.className = "chart-modal";
+    root.hidden = true;
+    root.innerHTML = `
+      <div class="chart-modal__panel" role="dialog" aria-modal="true" aria-label="Expanded chart">
+        <button type="button" class="chart-modal__close" data-close-modal aria-label="Close chart view">Close</button>
+        <h2 class="chart-modal__title"></h2>
+        <canvas class="chart-modal__canvas" width="960" height="280"></canvas>
+        <div class="chart-modal__stats">
+          <p><span>Current</span><strong data-stat-current>--</strong></p>
+          <p><span>Min</span><strong data-stat-min>--</strong></p>
+          <p><span>Max</span><strong data-stat-max>--</strong></p>
+          <p><span>Delta</span><strong data-stat-delta>--</strong></p>
+        </div>
+        <p class="chart-modal__meta"><span data-stat-samples>0</span> samples over <span data-stat-window>24h</span>.</p>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    chartModal.root = root;
+    chartModal.title = root.querySelector(".chart-modal__title");
+    chartModal.canvas = root.querySelector(".chart-modal__canvas");
+    chartModal.current = root.querySelector("[data-stat-current]");
+    chartModal.min = root.querySelector("[data-stat-min]");
+    chartModal.max = root.querySelector("[data-stat-max]");
+    chartModal.delta = root.querySelector("[data-stat-delta]");
+    chartModal.samples = root.querySelector("[data-stat-samples]");
+    chartModal.window = root.querySelector("[data-stat-window]");
+
+    root.addEventListener("click", (event) => {
+      if (event.target === root || event.target.closest("[data-close-modal]")) closeChartModal();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeChartModal();
+        closeFindingsModal();
+      }
+    });
+  }
+
+  function ensureFindingsModal() {
+    if (findingsModal.root) return;
+    const root = document.createElement("div");
+    root.className = "chart-modal";
+    root.hidden = true;
+    root.innerHTML = `
+      <div class="chart-modal__panel" role="dialog" aria-modal="true" aria-label="Expanded findings table">
+        <button type="button" class="chart-modal__close" data-close-findings aria-label="Close findings view">Close</button>
+        <h2 class="chart-modal__title">Findings (Expanded)</h2>
+        <div class="chart-modal__table-wrap" data-findings-expanded></div>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    findingsModal.root = root;
+    findingsModal.tableWrap = root.querySelector("[data-findings-expanded]");
+
+    root.addEventListener("click", (event) => {
+      if (event.target === root || event.target.closest("[data-close-findings]")) closeFindingsModal();
+    });
+  }
+
+  function openChartModal(metric) {
+    if (!history[metric]) return;
+    closeFindingsModal();
+    ensureChartModal();
+    activeMetric = metric;
+    chartModal.root.hidden = false;
+    document.body.classList.add("modal-open");
+    renderChartModal();
+  }
+
+  function closeChartModal() {
+    if (!chartModal.root) return;
+    chartModal.root.hidden = true;
+    activeMetric = null;
+    if (!findingsModal.root || findingsModal.root.hidden) {
+      document.body.classList.remove("modal-open");
+    }
+  }
+
+  function renderChartModal() {
+    if (!chartModal.root || !activeMetric) return;
+    const values = history[activeMetric] || [];
+    const config = metricConfig[activeMetric] || { label: "Metric", color: "#fb7185", unit: "" };
+
+    chartModal.title.textContent = `${config.label} (24h)`;
+    chartModal.samples.textContent = String(values.length);
+    chartModal.window.textContent = "24h";
+
+    if (!values.length) {
+      chartModal.current.textContent = "No data";
+      chartModal.min.textContent = "--";
+      chartModal.max.textContent = "--";
+      chartModal.delta.textContent = "--";
+      drawSparkline(chartModal.canvas, [], config.color);
+      return;
+    }
+
+    const curr = values[values.length - 1];
+    const prev = values.length > 1 ? values[values.length - 2] : curr;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+
+    chartModal.current.textContent = fmtMetric(curr, config.unit);
+    chartModal.min.textContent = fmtMetric(min, config.unit);
+    chartModal.max.textContent = fmtMetric(max, config.unit);
+    chartModal.delta.textContent = `${curr - prev >= 0 ? "+" : ""}${fmtMetric(curr - prev, config.unit)}`;
+
+    drawSparkline(chartModal.canvas, values, config.color);
+  }
+
+  function openFindingsModal() {
+    if (!el.findingsTable) return;
+    closeChartModal();
+    ensureFindingsModal();
+    findingsModal.root.hidden = false;
+    document.body.classList.add("modal-open");
+    renderFindingsModal();
+  }
+
+  function closeFindingsModal() {
+    if (!findingsModal.root) return;
+    findingsModal.root.hidden = true;
+    if (!chartModal.root || chartModal.root.hidden) {
+      document.body.classList.remove("modal-open");
+    }
+  }
+
+  function renderFindingsModal() {
+    if (!findingsModal.root || findingsModal.root.hidden || !el.findingsTable) return;
+    findingsModal.tableWrap.innerHTML = el.findingsTable.outerHTML;
+  }
+
+  function wireInteractions() {
+    document.querySelectorAll(".chart-widget[data-metric]").forEach((widget) => {
+      const metric = widget.dataset.metric;
+      if (!metric) return;
+      widget.setAttribute("role", "button");
+      widget.setAttribute("tabindex", "0");
+      widget.setAttribute("aria-label", "Expand chart");
+      widget.addEventListener("click", () => openChartModal(metric));
+      widget.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openChartModal(metric);
+        }
+      });
+    });
+
+    if (el.findingsTableWrap) {
+      el.findingsTableWrap.setAttribute("role", "button");
+      el.findingsTableWrap.setAttribute("tabindex", "0");
+      el.findingsTableWrap.setAttribute("aria-label", "Expand findings table");
+      el.findingsTableWrap.addEventListener("click", (event) => {
+        if (event.target.closest("a")) return;
+        openFindingsModal();
+      });
+      el.findingsTableWrap.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openFindingsModal();
+        }
+      });
+    }
   }
 
   async function refresh() {
@@ -189,6 +409,9 @@
         el.tasks.appendChild(li);
       });
     }
+
+    if (activeMetric) renderChartModal();
+    renderFindingsModal();
   }
 
   async function safeRefresh() {
@@ -200,6 +423,7 @@
     }
   }
 
+  wireInteractions();
   safeRefresh();
-  setInterval(safeRefresh, 30000);
+  setInterval(safeRefresh, POLL_MS);
 })();

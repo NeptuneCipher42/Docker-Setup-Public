@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#10151f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -26,16 +26,18 @@
       </section>
 
       <section class="charts-grid" aria-label="Security trends">
-        <article class="widget"><h2>Risk Trend</h2><canvas id="chart-risk" class="spark" width="340" height="88"></canvas><p id="trend-risk" class="meta trend">Trend: --</p></article>
-        <article class="widget"><h2>Finding Count Trend</h2><canvas id="chart-findings" class="spark" width="340" height="88"></canvas><p id="trend-findings" class="meta trend">Trend: --</p></article>
+        <article class="widget chart-widget" data-metric="risk"><h2>Risk Trend</h2><canvas id="chart-risk" class="spark" width="340" height="88"></canvas><p id="trend-risk" class="meta trend">Trend: --</p></article>
+        <article class="widget chart-widget" data-metric="findingCount"><h2>Finding Count Trend</h2><canvas id="chart-findings" class="spark" width="340" height="88"></canvas><p id="trend-findings" class="meta trend">Trend: --</p></article>
       </section>
 
       <section class="about">
         <h2>Findings</h2>
-        <table>
-          <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>CVE</th><th>Reference</th><th>Summary</th></tr></thead>
-          <tbody id="findings"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>CVE</th><th>Reference</th><th>Summary</th></tr></thead>
+            <tbody id="findings"></tbody>
+          </table>
+        </div>
       </section>
 
       <section class="about">

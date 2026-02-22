@@ -29,10 +29,11 @@ body {
     linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 56%, #02040a 100%);
   min-height: 100vh;
   padding: var(--space-5) var(--space-3);
+  overflow-x: hidden;
 }
 
 .shell {
-  width: min(1100px, 100%);
+  width: min(100% - 1rem, 1100px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -293,4 +294,10 @@ body::before {
 @media (max-width: 760px) {
   body { padding: var(--space-4) var(--space-2); }
   .shell { padding: var(--space-4) var(--space-3); }
+}
+@media (max-width: 560px) {
+  .shell { padding: 18px 14px; border-radius: 16px; }
+  .chips span { width: 100%; text-align: center; }
+  .timeline article { padding-left: 12px; }
+  .links { grid-template-columns: 1fr; }
 }

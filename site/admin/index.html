@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#140b26" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -28,9 +28,9 @@
       </section>
 
       <section class="charts-grid" aria-label="Admin trends">
-        <article class="widget"><h2>Load Trend</h2><canvas id="chart-load" class="spark" width="340" height="88"></canvas><p id="trend-load" class="meta trend">Trend: --</p></article>
-        <article class="widget"><h2>Memory Trend</h2><canvas id="chart-memory" class="spark" width="340" height="88"></canvas><p id="trend-memory" class="meta trend">Trend: --</p></article>
-        <article class="widget"><h2>Container Trend</h2><canvas id="chart-containers" class="spark" width="340" height="88"></canvas><p id="trend-containers" class="meta trend">Trend: --</p></article>
+        <article class="widget chart-widget" data-metric="load"><h2>Load Trend</h2><canvas id="chart-load" class="spark" width="340" height="88"></canvas><p id="trend-load" class="meta trend">Trend: --</p></article>
+        <article class="widget chart-widget" data-metric="memoryPct"><h2>Memory Trend</h2><canvas id="chart-memory" class="spark" width="340" height="88"></canvas><p id="trend-memory" class="meta trend">Trend: --</p></article>
+        <article class="widget chart-widget" data-metric="containers"><h2>Container Trend</h2><canvas id="chart-containers" class="spark" width="340" height="88"></canvas><p id="trend-containers" class="meta trend">Trend: --</p></article>
       </section>
 
       <section class="about">

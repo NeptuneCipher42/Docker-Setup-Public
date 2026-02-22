@@ -1,4 +1,4 @@
-const CACHE = "security-shell-v2";
+const CACHE = "security-shell-v5";
 const ASSETS = ["/styles.css", "/app.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
