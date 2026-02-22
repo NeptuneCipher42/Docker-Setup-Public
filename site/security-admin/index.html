@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#10151f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Security Admin | 404n0tf0und</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="kicker">Private Security</p>
+        <h1>Security Posture Dashboard</h1>
+        <p class="lede">Risk score, findings, and prioritized remediation tasks.</p>
+      </header>
+
+      <section class="status-grid">
+        <article class="widget"><h2>Risk Score</h2><p id="risk" class="value">Loading...</p></article>
+        <article class="widget"><h2>Status</h2><p id="status" class="value">Loading...</p></article>
+        <article class="widget"><h2>Last Run</h2><p id="last-run" class="value">Loading...</p></article>
+        <article class="widget"><h2>Findings</h2><p id="finding-count" class="value">Loading...</p></article>
+      </section>
+
+      <section class="charts-grid" aria-label="Security trends">
+        <article class="widget"><h2>Risk Trend</h2><canvas id="chart-risk" class="spark" width="340" height="88"></canvas><p id="trend-risk" class="meta trend">Trend: --</p></article>
+        <article class="widget"><h2>Finding Count Trend</h2><canvas id="chart-findings" class="spark" width="340" height="88"></canvas><p id="trend-findings" class="meta trend">Trend: --</p></article>
+      </section>
+
+      <section class="about">
+        <h2>Findings</h2>
+        <table>
+          <thead><tr><th>Severity</th><th>Tool</th><th>Target</th><th>CVE</th><th>Reference</th><th>Summary</th></tr></thead>
+          <tbody id="findings"></tbody>
+        </table>
+      </section>
+
+      <section class="about">
+        <h2>Remediation Tasks</h2>
+        <ul id="tasks"></ul>
+      </section>
+
+      <section class="links">
+        <a class="card" href="https://admin.404n0tf0und.net">Operations Dashboard</a>
+        <a class="card" href="https://kuma.404n0tf0und.net">Uptime Kuma</a>
+        <a class="card" href="https://netdata.404n0tf0und.net">Netdata</a>
+        <a class="card" href="https://404n0tf0und.net">Back to Public Home</a>
+      </section>
+    </main>
+    <script src="/app.js" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      }
+    </script>
+  </body>
+</html>

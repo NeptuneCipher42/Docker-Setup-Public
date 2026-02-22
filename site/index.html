@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1622" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>404n0tf0und.net</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="kicker">404n0tf0und.net</p>
+        <h1>Nicholas Fisher</h1>
+        <p class="lede">Microsoft Security Consultant | Intune, Defender, Sentinel, Azure Virtual Desktop, Purview &amp; Security Copilot</p>
+      </header>
+
+      <section class="about section-box" id="device-health">
+        <h2>Device Health Snapshot</h2>
+        <p class="lede">Live high-level health telemetry for host and container runtime.</p>
+        <div class="status-grid" id="public-widgets" aria-live="polite">
+          <article class="widget"><h2>Overall Status</h2><p id="w-status" class="value">Loading...</p></article>
+          <article class="widget"><h2>Uptime</h2><p id="w-uptime" class="value">Loading...</p></article>
+          <article class="widget"><h2>Containers Up</h2><p id="w-containers" class="value">Loading...</p></article>
+          <article class="widget"><h2>Last Refresh</h2><p id="w-updated" class="value">Loading...</p></article>
+          <article class="widget"><h2>Load Average</h2><p id="w-load" class="value">Loading...</p></article>
+          <article class="widget"><h2>Memory Use</h2><p id="w-memory" class="value">Loading...</p></article>
+        </div>
+        <div class="charts-grid" aria-label="Public trends">
+          <article class="widget"><h2>Load Trend</h2><canvas id="chart-load" class="spark" width="340" height="88"></canvas><p id="trend-load" class="meta trend">Trend: --</p></article>
+          <article class="widget"><h2>Container Runtime Trend</h2><canvas id="chart-containers" class="spark" width="340" height="88"></canvas><p id="trend-containers" class="meta trend">Trend: --</p></article>
+        </div>
+      </section>
+
+      <section class="about">
+        <h2>About Me</h2>
+        <p>
+          I am a Microsoft security consultant focused on turning complex enterprise security requirements into practical,
+          working systems. My work spans Intune, Defender, Sentinel, Purview, Azure Virtual Desktop, and hybrid identity,
+          with a strong emphasis on measurable hardening, compliance alignment, and resilient operations.
+        </p>
+        <p>
+          Across client environments, I build and tune M365 assessments, endpoint baselines, governance frameworks, and
+          remediation roadmaps using CIS and NIST-aligned controls. I enjoy translating high-level risk and policy goals
+          into engineer-ready implementation steps that teams can actually deploy, monitor, and improve over time.
+        </p>
+        <p>
+          Fun fact: when I am not hardening systems or testing controls, I am usually reading comics, watching anime, or
+          out doing something outdoors.
+        </p>
+      </section>
+
+      <section class="about links-panel">
+        <h2>Platform Links</h2>
+        <p class="lede">Jump to your published services and profiles.</p>
+        <div class="links">
+          <a class="card" href="https://git.404n0tf0und.net">Gitea</a>
+          <a class="card" href="https://cloud.404n0tf0und.net">Nextcloud</a>
+          <a class="card" href="https://www.linkedin.com/in/nicholas-fisher-cyber/">LinkedIn</a>
+          <a class="card" href="https://github.com/NeptuneCipher42">GitHub</a>
+          <a class="card" href="/resume/">Resume</a>
+        </div>
+      </section>
+
+      <section class="about section-box" id="public-security">
+        <h2>Public Security Snapshot</h2>
+        <p class="lede">High-level posture only. No sensitive findings are exposed publicly.</p>
+        <div class="status-grid">
+          <article class="widget"><h2>Posture</h2><p id="w-sec-posture" class="value">Loading...</p></article>
+          <article class="widget"><h2>Risk Band</h2><p id="w-sec-risk" class="value">Loading...</p></article>
+          <article class="widget"><h2>Open Tasks</h2><p id="w-sec-tasks" class="value">Loading...</p></article>
+          <article class="widget"><h2>Last Scan</h2><p id="w-sec-scan" class="value">Loading...</p></article>
+        </div>
+        <div class="charts-grid">
+          <article class="widget"><h2>Risk Band Trend</h2><canvas id="chart-sec-risk" class="spark" width="340" height="88"></canvas><p id="trend-sec-risk" class="meta trend">Trend: --</p></article>
+          <article class="widget"><h2>Open Tasks Trend</h2><canvas id="chart-sec-tasks" class="spark" width="340" height="88"></canvas><p id="trend-sec-tasks" class="meta trend">Trend: --</p></article>
+        </div>
+      </section>
+
+      <footer class="footer"><p>Hosted on 404n0tf0und.net</p></footer>
+    </main>
+    <script src="/assets/js/public-widgets.js" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      }
+    </script>
+  </body>
+</html>

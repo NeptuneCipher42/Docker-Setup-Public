@@ -1,0 +1,9 @@
+{
+  "name": "404n0tf0und Public Dashboard",
+  "short_name": "404 Public",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070b12",
+  "theme_color": "#0b1622",
+  "description": "Public status and security snapshot dashboard."
+}

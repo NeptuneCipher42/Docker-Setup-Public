@@ -1,0 +1,137 @@
+:root {
+  color-scheme: dark;
+  --abyss: #070b12;
+  --deep: #10151f;
+  --reef: #2b1420;
+  --glow: #fb7185;
+  --pulse: #f97316;
+  --text: #f8e8ee;
+  --muted: #d4b4c2;
+  --shell: rgba(24, 12, 18, 0.85);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Cinzel", "Trajan Pro", "Times New Roman", serif;
+  background:
+    radial-gradient(1100px 800px at 20% -10%, rgba(244, 63, 94, 0.16), transparent 55%),
+    radial-gradient(900px 680px at 90% 15%, rgba(249, 115, 22, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--deep) 0%, var(--abyss) 55%, #050308 100%);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 30px 14px;
+}
+.shell {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  background: var(--shell);
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(12px);
+}
+.kicker { text-transform: uppercase; letter-spacing: .2em; color: var(--glow); margin: 0; font-size: .74rem; }
+.hero h1 { margin: 8px 0; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.lede { color: var(--muted); margin: 0 0 18px; }
+.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.widget {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(251, 113, 133, 0.24);
+  border-radius: 14px;
+  padding: 12px;
+  background: linear-gradient(160deg, rgba(244,63,94,.11), rgba(43,20,32,.8));
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+.widget::after {
+  content: "";
+  position: absolute;
+  top: -140%;
+  left: -40%;
+  width: 28%;
+  height: 320%;
+  background: linear-gradient(to right, transparent, rgba(254, 205, 211, 0.2), transparent);
+  transform: rotate(16deg);
+  animation: shimmer 8s linear infinite;
+}
+.widget h2 { margin: 0 0 6px; font-size: .85rem; color: #fecdd3; }
+.value { margin: 0; font-weight: 700; font-size: 1.06rem; }
+.value.ok { color: #22c55e; }
+.value.warn { color: #f59e0b; }
+.value.bad { color: #ef4444; }
+.meta {
+  margin: 8px 0 0;
+  font-size: .82rem;
+  color: var(--muted);
+  letter-spacing: .02em;
+}
+.trend.up { color: #22c55e; }
+.trend.down { color: #ef4444; }
+.trend.flat { color: #f59e0b; }
+.about {
+  margin: 0 0 16px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(251,113,133,.25);
+  background: rgba(26, 10, 18, 0.55);
+}
+.about h2 { margin-top: 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid rgba(251,113,133,.24); padding: 8px; text-align: left; font-size: .9rem; }
+.sev-high { color: #ef4444; font-weight: 700; }
+.sev-medium { color: #f59e0b; font-weight: 700; }
+.sev-low { color: #22c55e; font-weight: 700; }
+.links { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.card {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 14px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  background: linear-gradient(145deg, rgba(244,63,94,.15), rgba(43,20,32,.82));
+  border: 1px solid rgba(251,113,133,.3);
+}
+.card:hover { transform: translateY(-2px); }
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 rgba(244, 63, 94, 0.0); }
+  50% { box-shadow: 0 0 16px rgba(244, 63, 94, 0.18); }
+  100% { box-shadow: 0 0 0 rgba(244, 63, 94, 0.0); }
+}
+
+.charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0 0 16px; }
+.spark {
+  width: 100%;
+  height: 88px;
+  display: block;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(43, 20, 32, 0.2), rgba(43, 20, 32, 0.46)),
+    repeating-linear-gradient(to right, rgba(251, 113, 133, 0.16) 0 1px, transparent 1px 44px);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(251,113,133,.1) 0 2px, transparent 3px),
+    radial-gradient(circle at 72% 32%, rgba(249,115,22,.09) 0 2px, transparent 3px),
+    radial-gradient(circle at 42% 80%, rgba(254,205,211,.08) 0 2px, transparent 3px);
+  background-size: 230px 230px;
+  animation: drift 18s linear infinite;
+}
+
+@keyframes drift {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-320%) rotate(16deg); }
+  100% { transform: translateX(420%) rotate(16deg); }
+}

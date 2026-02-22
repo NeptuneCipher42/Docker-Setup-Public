@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#140b26" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Admin Health | 404n0tf0und</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="kicker">Private Admin</p>
+        <h1>Operations Dashboard</h1>
+        <p class="lede">Live host, service, and container health telemetry.</p>
+      </header>
+
+      <section class="status-grid">
+        <article class="widget"><h2>Status</h2><p id="status" class="value">Loading...</p></article>
+        <article class="widget"><h2>Load Average</h2><p id="load" class="value">Loading...</p></article>
+        <article class="widget"><h2>Memory</h2><p id="memory" class="value">Loading...</p></article>
+        <article class="widget"><h2>Disk</h2><p id="disk" class="value">Loading...</p></article>
+        <article class="widget"><h2>Containers</h2><p id="containers" class="value">Loading...</p></article>
+        <article class="widget"><h2>DNS Health</h2><p id="dns-status" class="value">Loading...</p></article>
+      </section>
+
+      <section class="charts-grid" aria-label="Admin trends">
+        <article class="widget"><h2>Load Trend</h2><canvas id="chart-load" class="spark" width="340" height="88"></canvas><p id="trend-load" class="meta trend">Trend: --</p></article>
+        <article class="widget"><h2>Memory Trend</h2><canvas id="chart-memory" class="spark" width="340" height="88"></canvas><p id="trend-memory" class="meta trend">Trend: --</p></article>
+        <article class="widget"><h2>Container Trend</h2><canvas id="chart-containers" class="spark" width="340" height="88"></canvas><p id="trend-containers" class="meta trend">Trend: --</p></article>
+      </section>
+
+      <section class="about">
+        <h2>Service Health</h2>
+        <ul id="services"></ul>
+      </section>
+
+      <section class="about dns-help">
+        <h2>DNS Help</h2>
+        <p>If dashboards fail to load, confirm DNS records resolve to this host and are not proxied unexpectedly.</p>
+        <ul id="dns-details"></ul>
+        <p class="lede">Quick checks:</p>
+        <ul>
+          <li>Check A/AAAA for 404n0tf0und.net, admin.404n0tf0und.net, and security-admin.404n0tf0und.net.</li>
+          <li>If using DDNS, run ~/.dotfishingbot/cloudflare/ddns.sh and confirm records updated.</li>
+          <li>From this server, run: <code>dig +short admin.404n0tf0und.net</code></li>
+        </ul>
+      </section>
+
+      <p class="footer" id="updated">Updated: --</p>
+      <section class="links">
+        <a class="card" href="https://security-admin.404n0tf0und.net">Security Dashboard</a>
+        <a class="card" href="https://kuma.404n0tf0und.net">Uptime Kuma</a>
+        <a class="card" href="https://netdata.404n0tf0und.net">Netdata</a>
+        <a class="card" href="https://404n0tf0und.net">Back to Public Home</a>
+      </section>
+    </main>
+    <script src="/app.js" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+      }
+    </script>
+  </body>
+</html>

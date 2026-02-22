@@ -1,0 +1,129 @@
+services:
+  caddy:
+    image: ghcr.io/caddybuilds/caddy-cloudflare@sha256:4a3d4afed443f026040cad84b48ef2eef6cc6eb5a80a3ecab66a03df469a46f8
+    container_name: caddy
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  db:
+    image: mariadb@sha256:2f45480c9cac0545cd723ad0006d6ac28e173eeb6120b83ab31efc1a043dd325
+    container_name: mariadb
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    env_file:
+      - .env
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  gitea:
+    image: gitea/gitea@sha256:17d18218be2dad1f8ed402a4f906989505c90ab8b66ee9befcecfb5d470133e7
+    container_name: gitea
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - USER_UID=${PUID}
+      - USER_GID=${PGID}
+      - TZ=${TZ}
+      - GITEA__database__DB_TYPE=mysql
+      - GITEA__database__HOST=db:3306
+      - GITEA__database__NAME=${GITEA_DB_NAME}
+      - GITEA__database__USER=${GITEA_DB_USER}
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
+      - GITEA__server__ROOT_URL=${GITEA_ROOT_URL}
+      - GITEA__server__DOMAIN=${GITEA_DOMAIN}
+      - GITEA__server__SSH_DOMAIN=${GITEA_DOMAIN}
+      - GITEA__service__DISABLE_REGISTRATION=true
+      - GITEA__service__SHOW_REGISTRATION_BUTTON=false
+      - GITEA__service__ALLOW_ONLY_EXTERNAL_REGISTRATION=false
+      - GITEA__repository__ENABLE_PUSH_CREATE_USER=false
+      - GITEA__repository__ENABLE_PUSH_CREATE_ORG=false
+      - GITEA__ui__THEMES=gitea,arc-green,gitea-auto,cavern
+      - GITEA__ui__DEFAULT_THEME=cavern
+    volumes:
+      - gitea_data:/data
+      - ./gitea-custom:/data/gitea/custom:ro
+
+  nextcloud:
+    image: nextcloud@sha256:0e1084cc59df77bec7d6bb29d9ac6939da8372512237a9c51f74ff0a970524f2
+    container_name: nextcloud
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - TZ=${TZ}
+      - MYSQL_HOST=db
+      - MYSQL_DATABASE=${NEXTCLOUD_DB_NAME}
+      - MYSQL_USER=${NEXTCLOUD_DB_USER}
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
+    volumes:
+      - nextcloud_data:/var/www/html
+
+  uptime-kuma:
+    image: louislam/uptime-kuma@sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9
+    container_name: uptime-kuma
+    restart: unless-stopped
+    profiles: ["tools"]
+    volumes:
+      - uptime_kuma_data:/app/data
+
+  netdata:
+    image: netdata/netdata@sha256:4cbe33f6fc317a7f5c453c8b4997316e4e320a7abd8cc921cecba98f2a5cbcf5
+    container_name: netdata
+    restart: unless-stopped
+    profiles: ["tools"]
+    environment:
+      - NETDATA_DISABLE_CLOUD=1
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor=unconfined
+    volumes:
+      - netdata_config:/etc/netdata
+      - netdata_lib:/var/lib/netdata
+      - netdata_cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+
+volumes:
+  caddy_data:
+  caddy_config:
+  db_data:
+  gitea_data:
+  nextcloud_data:
+  uptime_kuma_data:
+  netdata_config:
+  netdata_lib:
+  netdata_cache:

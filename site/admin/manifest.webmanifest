@@ -1,0 +1,9 @@
+{
+  "name": "404 Operations Dashboard",
+  "short_name": "Ops Dash",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090713",
+  "theme_color": "#140b26",
+  "description": "Private operations and health dashboard."
+}

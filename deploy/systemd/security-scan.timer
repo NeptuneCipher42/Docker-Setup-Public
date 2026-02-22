@@ -1,0 +1,11 @@
+[Unit]
+Description=Run security scan every 12 hours
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+Persistent=true
+RandomizedDelaySec=300
+Unit=security-scan.service
+
+[Install]
+WantedBy=timers.target

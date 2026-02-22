@@ -1,0 +1,15 @@
+.env.local
+.env.*.local
+
+# Local/editor noise
+.DS_Store
+*.swp
+*.swo
+*.tmp
+
+# Runtime artifacts
+*.log
+deploy/tmp/
+deploy/backups/
+
+.env

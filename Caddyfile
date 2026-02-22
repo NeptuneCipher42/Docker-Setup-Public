@@ -1,0 +1,144 @@
+{
+  email {$CADDY_EMAIL}
+  default_sni 404n0tf0und.net
+}
+
+(secure_headers) {
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer"
+    Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    -Server
+  }
+}
+
+404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+
+  @public_api path /api/public /api/public/*
+  handle @public_api {
+    uri strip_prefix /api
+    reverse_proxy host.docker.internal:9191
+  }
+
+  @private_api path /api/admin /api/admin/*
+  respond @private_api "Forbidden" 403
+
+  root * /srv
+  file_server
+}
+
+git.404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+  reverse_proxy gitea:3000
+}
+
+cloud.404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+  reverse_proxy nextcloud:80
+}
+
+admin.404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+  header {
+    Cache-Control "no-store"
+    X-Robots-Tag "noindex, nofollow"
+  }
+
+  log {
+    output file /var/log/caddy/admin-access.log
+    format json
+  }
+
+  basic_auth {
+    {$ADMIN_USER} {$ADMIN_PASSWORD_HASH}
+  }
+
+  handle_path /api/* {
+    reverse_proxy host.docker.internal:9191
+  }
+
+  root * /srv/admin
+  file_server
+}
+
+security-admin.404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+  header {
+    Cache-Control "no-store"
+    X-Robots-Tag "noindex, nofollow"
+  }
+
+  log {
+    output file /var/log/caddy/security-admin-access.log
+    format json
+  }
+
+  basic_auth {
+    {$ADMIN_USER} {$ADMIN_PASSWORD_HASH}
+  }
+
+  handle_path /api/* {
+    reverse_proxy host.docker.internal:9191
+  }
+
+  root * /srv/security-admin
+  file_server
+}
+
+kuma.404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+  header {
+    Cache-Control "no-store"
+    X-Robots-Tag "noindex, nofollow"
+  }
+
+  basic_auth {
+    {$ADMIN_USER} {$ADMIN_PASSWORD_HASH}
+  }
+
+  reverse_proxy uptime-kuma:3001
+}
+
+netdata.404n0tf0und.net {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  import secure_headers
+  header {
+    Cache-Control "no-store"
+    X-Robots-Tag "noindex, nofollow"
+  }
+
+  basic_auth {
+    {$ADMIN_USER} {$ADMIN_PASSWORD_HASH}
+  }
+
+  reverse_proxy netdata:19999 {
+    header_up Host {host}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-For {remote_host}
+    header_up -Origin
+  }
+}

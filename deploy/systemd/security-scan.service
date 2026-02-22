@@ -1,0 +1,11 @@
+[Unit]
+Description=Run scheduled security scan for status dashboards
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/statusd/statusd.env
+ExecStart=/usr/local/bin/statusd-security-scan
+User=root
+Group=root
